@@ -6,6 +6,8 @@ fabricates a tuned model, so until this has run the `lora` arm simply errors.
 """
 from __future__ import annotations
 
+import os
+
 import numpy as np
 from peft import LoraConfig, TaskType, get_peft_model
 from sklearn.metrics import accuracy_score, f1_score
@@ -67,15 +69,25 @@ def main() -> None:
     keep = ["input_ids", "attention_mask", "labels"]
     splits.set_format("torch", columns=keep)
 
-    # bf16/fp16 on CUDA is the difference between ~10 minutes on a Colab T4 and
-    # a run that never finishes. Apple MPS has no usable mixed precision here, so
-    # it stays fp32 - and at fp32 this model is too slow on MPS to be worth it.
+    # fp16 on CUDA is the difference between ~10 minutes on a Colab T4 and a run
+    # that never finishes. Apple MPS has no usable mixed precision here, so it
+    # stays fp32 - and at fp32 this model is too slow on MPS to be worth it.
+    #
+    # LORA_FP16=0 forces fp32 on CUDA. Some torch/accelerate combinations blow up
+    # inside the GradScaler's unscale step, and fp32 on a T4 is still perfectly
+    # usable for a model this size - a failed run is slower than a slow one.
     import torch as _torch
 
     on_cuda = _torch.cuda.is_available()
+    use_fp16 = on_cuda and os.getenv("LORA_FP16", "1") != "0"
+    print(
+        f"device: {'cuda:' + _torch.cuda.get_device_name(0) if on_cuda else 'cpu/mps'} "
+        f"| torch {_torch.__version__} | fp16: {use_fp16}"
+    )
+
     args = TrainingArguments(
         output_dir=str(ARTIFACTS / "trainer"),
-        fp16=on_cuda,
+        fp16=use_fp16,
         dataloader_pin_memory=on_cuda,
         learning_rate=LORA.learning_rate,
         per_device_train_batch_size=LORA.batch_size,
