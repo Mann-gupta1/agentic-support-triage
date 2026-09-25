@@ -3,7 +3,11 @@ __pycache__/
 .env
 .venv/
 venv/
-artifacts/
+artifacts/*
+# ...except the trained adapter: committing it (~19MB) means anyone can rerun
+# src.evaluate and check the README numbers without a GPU or a 24-minute train.
+!artifacts/lora-router/
+!artifacts/lora-router/**
 .chroma/
 # reports/ IS committed on purpose: the README quotes those numbers, so the
 # run that produced them has to be in the repo or the numbers are unsourced.

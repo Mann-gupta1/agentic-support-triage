@@ -1,0 +1,45 @@
+[
+  {
+    "router": "tfidf",
+    "n": 500,
+    "accuracy": 0.906,
+    "macro_f1": 0.8955247018449142,
+    "latency_ms_p50": 2.4369289999981447,
+    "latency_ms_p95": 3.3921721999661254,
+    "wall_seconds": 1.2,
+    "mean_confidence": 0.6487627781164708,
+    "mean_confidence_when_wrong": 0.2930299678318004,
+    "selective": [
+      {
+        "threshold": 0.0,
+        "coverage": 1.0,
+        "accuracy_on_accepted": 0.906
+      },
+      {
+        "threshold": 0.3,
+        "coverage": 0.862,
+        "accuracy_on_accepted": 0.9535962877030162
+      },
+      {
+        "threshold": 0.5,
+        "coverage": 0.706,
+        "accuracy_on_accepted": 0.9858356940509915
+      },
+      {
+        "threshold": 0.65,
+        "coverage": 0.562,
+        "accuracy_on_accepted": 0.9893238434163701
+      },
+      {
+        "threshold": 0.8,
+        "coverage": 0.386,
+        "accuracy_on_accepted": 1.0
+      },
+      {
+        "threshold": 0.9,
+        "coverage": 0.212,
+        "accuracy_on_accepted": 1.0
+      }
+    ]
+  }
+]

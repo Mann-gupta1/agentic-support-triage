@@ -1,0 +1,88 @@
+[
+  {
+    "router": "tfidf",
+    "n": 500,
+    "accuracy": 0.906,
+    "macro_f1": 0.8955247018449142,
+    "latency_ms_p50": 1.6489629999796307,
+    "latency_ms_p95": 2.5004718000673165,
+    "wall_seconds": 0.87,
+    "mean_confidence": 0.6487627781164708,
+    "mean_confidence_when_wrong": 0.2930299678318004,
+    "selective": [
+      {
+        "threshold": 0.0,
+        "coverage": 1.0,
+        "accuracy_on_accepted": 0.906
+      },
+      {
+        "threshold": 0.3,
+        "coverage": 0.862,
+        "accuracy_on_accepted": 0.9535962877030162
+      },
+      {
+        "threshold": 0.5,
+        "coverage": 0.706,
+        "accuracy_on_accepted": 0.9858356940509915
+      },
+      {
+        "threshold": 0.65,
+        "coverage": 0.562,
+        "accuracy_on_accepted": 0.9893238434163701
+      },
+      {
+        "threshold": 0.8,
+        "coverage": 0.386,
+        "accuracy_on_accepted": 1.0
+      },
+      {
+        "threshold": 0.9,
+        "coverage": 0.212,
+        "accuracy_on_accepted": 1.0
+      }
+    ]
+  },
+  {
+    "router": "lora",
+    "n": 500,
+    "accuracy": 0.924,
+    "macro_f1": 0.9200080559753604,
+    "latency_ms_p50": 53.920691000030274,
+    "latency_ms_p95": 75.68631219978668,
+    "wall_seconds": 28.77,
+    "mean_confidence": 0.948560546875,
+    "mean_confidence_when_wrong": 0.6984220805921053,
+    "selective": [
+      {
+        "threshold": 0.0,
+        "coverage": 1.0,
+        "accuracy_on_accepted": 0.924
+      },
+      {
+        "threshold": 0.3,
+        "coverage": 0.994,
+        "accuracy_on_accepted": 0.9275653923541247
+      },
+      {
+        "threshold": 0.5,
+        "coverage": 0.976,
+        "accuracy_on_accepted": 0.9344262295081968
+      },
+      {
+        "threshold": 0.65,
+        "coverage": 0.95,
+        "accuracy_on_accepted": 0.9494736842105264
+      },
+      {
+        "threshold": 0.8,
+        "coverage": 0.916,
+        "accuracy_on_accepted": 0.962882096069869
+      },
+      {
+        "threshold": 0.9,
+        "coverage": 0.856,
+        "accuracy_on_accepted": 0.9813084112149533
+      }
+    ]
+  }
+]

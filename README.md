@@ -30,37 +30,51 @@ retrieve policy ──▶ draft reply ──▶ grade        │
 
 ## Results
 
-Real numbers from `reports/`, produced by `python -m src.evaluate`. Nothing below
-is hand-written — regenerate it and the file in `reports/` is the source of truth.
-
-**Classical-ML baseline** (TF-IDF + logistic regression, 500 sampled test items,
-all 77 intents present):
+Real numbers from `reports/eval-2026-09-25T06-58-32Z.md`, produced by
+`python -m src.evaluate`. Nothing below is hand-written — regenerate it and the
+file in `reports/` is the source of truth. 500 sampled test items, all 77
+intents present.
 
 | Router | Accuracy | Macro-F1 | p50 ms | p95 ms | Mean conf | Mean conf when wrong |
 |---|---|---|---|---|---|---|
-| `tfidf` | 0.906 | 0.896 | 1.2 | 5.2 | 0.65 | 0.29 |
+| `tfidf` (TF-IDF + logistic regression) | 0.906 | 0.896 | 1.6 | 2.5 | 0.65 | 0.29 |
+| `lora` (Qwen2.5-0.5B, LoRA, 3 epochs) | **0.924** | **0.920** | 53.9 | 75.7 | 0.95 | 0.70 |
 
-The gap between mean confidence overall (0.65) and mean confidence when wrong
-(0.29) is what makes the gate work at all — the router's uncertainty is
-informative, not noise. That shows up directly as selective accuracy:
+On the headline the fine-tune looks barely worth it: +1.8pp accuracy for 34x the
+latency. **That headline is misleading, and the selective-prediction sweep is why
+the harness exists.**
 
-| Threshold | Coverage (auto-answered) | Accuracy on accepted |
-|---|---|---|
-| 0.00 | 100.0% | 0.906 |
-| 0.30 | 86.2% | 0.954 |
-| 0.50 | 70.6% | 0.986 |
-| 0.65 | 56.2% | 0.989 |
-| 0.80 | 38.6% | 1.000 |
+| Router | Threshold | Coverage (auto-answered) | Accuracy on accepted |
+|---|---|---|---|
+| `tfidf` | 0.50 | 70.6% | 0.986 |
+| `lora` | 0.90 | **85.6%** | 0.981 |
 
-Read the 0.50 row: **70.6% of traffic answered without a human, at 98.6% accuracy
-on what it answered.** Raising the gate to 0.80 buys perfect accuracy and costs
-more than half the automation. That is the actual product decision, and it is a
-number, not a preference.
+Held at the same quality bar — about 98% accuracy on whatever it chooses to
+answer — **the tuned router automates 85.6% of traffic against the baseline's
+70.6%.** That is 15 points more automation, and none of it is visible in the
+accuracy column. The fine-tune's real contribution is not being right more often;
+it is being right more often *on the cases it is confident about*, which is the
+only thing a gated system can actually spend.
 
-**LoRA-tuned arm:** not yet run. Open `notebooks/colab_finetune.ipynb` on a
-Colab T4, then `python -m src.evaluate --arms tfidf,lora` fills it in. Until
-then this table stays as it is — the repo does not print a tuned number it has
-not measured.
+**The thresholds are not comparable across routers, and that is the catch.** The
+tuned model is badly calibrated in absolute terms: mean confidence 0.95, and
+still 0.70 when it is wrong, against 0.29 for TF-IDF. It is more accurate and
+less honest about being wrong. So the gate has to be set per router from its own
+curve — 0.50 for TF-IDF, 0.90 for LoRA — and a threshold copied from one to the
+other silently destroys the gate. `ROUTER_CONFIDENCE_THRESHOLD` in
+`src/config.py` is a single value on purpose, so swapping the router without
+re-reading this table is a decision you have to make, not one you can drift into.
+
+**Is 34x latency worth 15pp more automation?** At 53.9 ms p50 the router is still
+far under what a support reply needs, and the drafting call dominates the request
+anyway. So yes here — but that is a judgement about this workload at this scale,
+not a general fact, and it flips the moment the router sits on a hot path.
+
+**What the first run got wrong.** A one-epoch smoke run scored 0.848 — *worse*
+than the TF-IDF baseline — and briefly looked like a clean "the cheap option
+wins" finding. It was under-training, not a result. Three epochs moved it to
+0.924. Checking that before writing it up is the difference between a finding and
+a story.
 
 **LLM zero-shot arm:** requires `OPENAI_API_KEY`. Skipped automatically when absent.
 
@@ -76,8 +90,8 @@ python -m src.evaluate --arms tfidf --limit 500
 
 # fine-tune the router -> use Colab, see notebooks/colab_finetune.ipynb
 # (a local MPS run is measured below and is not viable)
-LORA_EPOCHS=1 python -m src.finetune     # smoke run
-python -m src.finetune                   # full run
+LORA_EPOCHS=1 LORA_FP16=0 python -m src.finetune   # smoke run, ~6 min on a T4
+LORA_FP16=0 python -m src.finetune                # full run, ~24 min on a T4
 python -m src.evaluate --arms tfidf,lora --limit 500
 
 # add the hosted-LLM arm and the LLM drafter/grader
@@ -135,12 +149,20 @@ by label. An early version of the harness took the first N items and reported
 the 77 intents. `--limit` now draws a seeded random sample and the report prints
 how many distinct intents it actually contains.
 
-**Why the fine-tune runs on Colab and not locally.** Measured, not assumed: on
-an M-series Mac at fp32 on MPS, a single training step took 74-166 seconds. At
-846 steps that is 17 to 39 hours. MPS has no usable mixed precision for this
-model, so there is no fp16 path to rescue it. On a Colab T4 with fp16 the same
-run is roughly 10-15 minutes. `src/finetune.py` turns on fp16 and pinned memory
-only when CUDA is present, so the same file is correct on both.
+**Why the fine-tune runs on Colab and not locally.** Measured, not assumed. On
+an M-series Mac at fp32 on MPS a single training step took 74-166 seconds; at 846
+steps that is 17 to 39 hours. MPS has no usable mixed precision for this model,
+so there is no fp16 path to rescue it. The same run on a Colab T4 took **23m43s**
+at ~1.2 s/step — between 55x and 124x faster.
+
+**Why the T4 run is fp32 too.** fp16 was the plan and it does not work on this
+stack: on torch 2.11.0+cu128 with a T4, the first optimizer step dies inside the
+GradScaler's unscale with `NotImplementedError` from
+`_amp_foreach_non_finite_check_and_unscale_`. Rather than pin a torch version to
+chase it, `LORA_FP16=0` falls back to fp32, which finishes in 24 minutes. A slow
+run beats a broken one, and `src/finetune.py` prints the device, the torch
+version and the fp16 decision on startup so this is visible in one line instead
+of inferred from a stack trace.
 
 **Why `mteb/banking77`.** The original `PolyAI/banking77` ships a loading script,
 which `datasets>=3` refuses to execute. The mteb mirror is parquet-native. It
