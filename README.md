@@ -163,3 +163,9 @@ derived from the paired `label_text` column.
 
 [banking77](https://huggingface.co/datasets/mteb/banking77) — 13k customer-support
 utterances over 77 banking intents. CC-BY-4.0.
+
+## Run it on Colab
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/Mann-gupta1/agentic-support-triage/blob/main/notebooks/colab_finetune.ipynb)
+
+Set the runtime to **T4 GPU** first.
