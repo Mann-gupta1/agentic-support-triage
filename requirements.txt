@@ -1,0 +1,22 @@
+# Core
+transformers>=4.44
+torch>=2.3
+datasets>=2.20
+peft>=0.12
+accelerate>=0.33
+scikit-learn>=1.5
+numpy>=1.26
+
+# Agent graph
+langgraph>=0.2
+langchain-core>=0.3
+
+# Retrieval
+chromadb>=0.5
+
+# Optional: hosted-LLM arm of the eval and the responder node
+openai>=1.40
+
+# Reporting / CLI
+rich>=13.7
+python-dotenv>=1.0
